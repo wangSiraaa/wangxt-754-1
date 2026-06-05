@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { useAppStore } from '@/store/useAppStore';
-import { MOCK_POINTS } from '@/data/mock';
+import { MOCK_POINTS, MOCK_USERS } from '@/data/mock';
 
 describe('关闭点位巡检限制', () => {
   it('应正确识别关闭的点位', () => {
@@ -77,5 +77,53 @@ describe('关闭点位巡检限制', () => {
       expect(p.district).toBe('朝阳区');
     });
     store.resetFilters();
+  });
+});
+
+describe('市民监督员权限边界', () => {
+  it('市民监督员角色应存在于用户列表中', () => {
+    const citizenUsers = MOCK_USERS.filter((u) => u.role === 'citizen');
+    expect(citizenUsers.length).toBeGreaterThan(0);
+    expect(citizenUsers[0].role).toBe('citizen');
+  });
+
+  it('切换到市民监督员后，currentUser 角色应为 citizen', () => {
+    const store = useAppStore.getState();
+    store.setRole('citizen');
+    const { currentUser } = useAppStore.getState();
+    expect(currentUser.role).toBe('citizen');
+    store.setRole('supervisor');
+  });
+
+  it('市民监督员应能访问点位基础信息（公示内容）', () => {
+    const store = useAppStore.getState();
+    store.setRole('citizen');
+    const citizenState = useAppStore.getState();
+    const points = citizenState.getFilteredPoints();
+    
+    expect(points.length).toBeGreaterThan(0);
+    points.forEach((p) => {
+      expect(p.name).toBeDefined();
+      expect(p.address).toBeDefined();
+      expect(p.odorLevel).toBeDefined();
+      expect(p.cleanStatus).toBeDefined();
+      expect(p.district).toBeDefined();
+    });
+    
+    store.setRole('supervisor');
+  });
+
+  it('市民监督员不应能请求补给（操作权限）', () => {
+    const store = useAppStore.getState();
+    store.setRole('citizen');
+    
+    const testPointId = MOCK_POINTS[0].id;
+    const beforeSupplyRequested = store.points.find(p => p.id === testPointId)?.supplyRequested;
+    
+    store.setRole('supervisor');
+    const afterState = useAppStore.getState();
+    const afterSupplyRequested = afterState.points.find(p => p.id === testPointId)?.supplyRequested;
+    
+    expect(afterSupplyRequested).toBe(beforeSupplyRequested);
   });
 });

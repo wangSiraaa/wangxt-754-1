@@ -14,6 +14,7 @@ export default function PointCard({ point }: PointCardProps) {
   const isAnomaly = point.odorLevel >= 4;
   const isWarning = point.odorLevel === 3;
   const isSupplyLow = point.supplies.toiletPaper < 15 || point.supplies.handSanitizer < 15 || point.supplies.tissue < 15;
+  const isCitizen = currentUser.role === 'citizen';
 
   const odorColor = point.odorLevel >= 4 ? 'text-red-600' : point.odorLevel === 3 ? 'text-amber-600' : point.odorLevel >= 2 ? 'text-emerald-600' : 'text-teal-600';
 
@@ -25,12 +26,19 @@ export default function PointCard({ point }: PointCardProps) {
     ? 'border-amber-300'
     : 'border-slate-200';
 
+  const handleClick = () => {
+    if (isCitizen) return;
+    navigate(`/inspect/${point.id}`);
+  };
+
   return (
     <div
-      className={`relative bg-white rounded-xl border-2 ${borderClass} p-4 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer ${
+      className={`relative bg-white rounded-xl border-2 ${borderClass} p-4 transition-all duration-300 ${
+        !isCitizen ? 'hover:shadow-lg hover:-translate-y-0.5 cursor-pointer' : 'cursor-default'
+      } ${
         isAnomaly && point.isOpen ? 'animate-pulse-subtle' : ''
       }`}
-      onClick={() => navigate(`/inspect/${point.id}`)}
+      onClick={handleClick}
     >
       {!point.isOpen && (
         <div className="absolute inset-0 bg-gray-100/60 rounded-xl flex items-center justify-center z-10">
@@ -84,7 +92,7 @@ export default function PointCard({ point }: PointCardProps) {
         </span>
       </div>
 
-      {isSupplyLow && point.isOpen && (
+      {isSupplyLow && point.isOpen && !isCitizen && (
         <div className="flex items-center gap-2 mt-2">
           <PackageX size={14} className="text-amber-500" />
           <span className="text-xs text-amber-600">耗材不足</span>
@@ -107,7 +115,7 @@ export default function PointCard({ point }: PointCardProps) {
         </div>
       )}
 
-      {point.lastInspection && (
+      {!isCitizen && point.lastInspection && (
         <div className="flex items-center gap-1 mt-2 text-xs text-slate-400">
           <Clock size={12} />
           <span>最近巡检: {point.lastInspection}</span>
@@ -115,13 +123,14 @@ export default function PointCard({ point }: PointCardProps) {
       )}
 
       <div className="flex items-center gap-1 mt-1.5 text-xs text-slate-400">
-        <span>保洁: {point.cleanerName}</span>
-        {currentUser.role !== 'citizen' && (
+        {!isCitizen && <span>保洁: {point.cleanerName}</span>}
+        {!isCitizen && (
           <span className="text-slate-300 mx-1">·</span>
         )}
-        {currentUser.role !== 'citizen' && (
+        {!isCitizen && (
           <span>片区: {point.district}</span>
         )}
+        {isCitizen && <span>{point.district}</span>}
       </div>
     </div>
   );

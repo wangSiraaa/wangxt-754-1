@@ -19,14 +19,15 @@ export default function Home() {
   ).length;
   const closedCount = points.filter((p) => !p.isOpen).length;
 
+  const isCitizen = currentUser.role === 'citizen';
+
   const handlePointClick = useCallback(
     (point: ToiletPoint) => {
+      if (isCitizen) return;
       navigate(`/inspect/${point.id}`);
     },
-    [navigate]
+    [navigate, isCitizen]
   );
-
-  const isCitizen = currentUser.role === 'citizen';
 
   return (
     <div className="h-full flex flex-col">

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Lock, AlertTriangle, PackageX, CheckCircle, ArrowLeft, Send } from 'lucide-react';
+import { Lock, AlertTriangle, PackageX, CheckCircle, ArrowLeft, Send, ShieldAlert } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import type { OdorLevel, CleanStatus, InspectionRecord } from '@/types';
 import { ODOR_LABELS, CLEAN_LABELS } from '@/types';
@@ -11,6 +11,7 @@ export default function Inspection() {
   const { getPointById, currentUser, addInspection, requestSupply } = useAppStore();
 
   const point = id ? getPointById(id) : undefined;
+  const isCitizen = currentUser.role === 'citizen';
 
   const [odorLevel, setOdorLevel] = useState<OdorLevel>(1);
   const [cleanStatus, setCleanStatus] = useState<CleanStatus>('clean');
@@ -24,6 +25,28 @@ export default function Inspection() {
       setShowCloseAlert(true);
     }
   }, [point]);
+
+  if (isCitizen) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center max-w-md px-6">
+          <div className="bg-gray-100 p-4 rounded-full inline-block mb-4">
+            <ShieldAlert size={48} className="text-gray-400" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 mb-2">无巡检权限</h2>
+          <p className="text-sm text-slate-500 mb-6">
+            市民监督员仅可查看公示信息，无法进行巡检录入操作。如需巡检，请使用保洁员或片区主管账号登录。
+          </p>
+          <button
+            onClick={() => navigate('/')}
+            className="bg-teal-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-teal-800 transition-colors"
+          >
+            返回首页
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!point) {
     return (
