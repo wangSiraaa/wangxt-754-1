@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Download, FileText, CheckCircle } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import FilterBar from '@/components/FilterBar';
-import { ODOR_LABELS, CLEAN_LABELS } from '@/types';
+import StatusLegend, { LegendBadge } from '@/components/StatusLegend';
+import { ODOR_LABELS, CLEAN_LABELS, LEGEND_LABELS, calculateLegendStatus } from '@/types';
 import { DISTRICTS } from '@/data/mock';
 
 export default function Export() {
@@ -29,16 +30,21 @@ export default function Export() {
 
   const exportCSV = () => {
     const data = getFilteredInspections();
-    const headers = ['巡检时间', '点位名称', '巡检员', '异味等级', '清洁状态', '需要补给', '备注'];
-    const rows = data.map((i) => [
-      i.inspectTime,
-      i.pointName,
-      i.inspectorName,
-      ODOR_LABELS[i.odorLevel],
-      CLEAN_LABELS[i.cleanStatus],
-      i.supplyNeeded ? '是' : '否',
-      `"${i.remark.replace(/"/g, '""')}"`,
-    ]);
+    const headers = ['巡检时间', '点位名称', '巡检员', '异味等级', '清洁状态', '状态图例', '优先级分', '需要补给', '备注'];
+    const rows = data.map((i) => {
+      const legendStatus = i.legendStatus ?? calculateLegendStatus(i.odorLevel, i.cleanStatus);
+      return [
+        i.inspectTime,
+        i.pointName,
+        i.inspectorName,
+        ODOR_LABELS[i.odorLevel],
+        CLEAN_LABELS[i.cleanStatus],
+        LEGEND_LABELS[legendStatus],
+        String(i.priorityScore ?? 0),
+        i.supplyNeeded ? '是' : '否',
+        `"${i.remark.replace(/"/g, '""')}"`,
+      ];
+    });
 
     const BOM = '\uFEFF';
     const csv = BOM + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
@@ -106,12 +112,17 @@ export default function Export() {
               </div>
             ) : (
               <div className="overflow-x-auto">
+                <div className="mb-4">
+                  <StatusLegend compact />
+                </div>
+                <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-200">
                       <th className="text-left py-2 px-3 text-xs font-medium text-slate-500">巡检时间</th>
                       <th className="text-left py-2 px-3 text-xs font-medium text-slate-500">点位</th>
                       <th className="text-left py-2 px-3 text-xs font-medium text-slate-500">巡检员</th>
+                      <th className="text-left py-2 px-3 text-xs font-medium text-slate-500">状态图例</th>
                       <th className="text-left py-2 px-3 text-xs font-medium text-slate-500">异味</th>
                       <th className="text-left py-2 px-3 text-xs font-medium text-slate-500">状态</th>
                       <th className="text-left py-2 px-3 text-xs font-medium text-slate-500">补给</th>
@@ -123,6 +134,12 @@ export default function Export() {
                         <td className="py-2 px-3 text-xs text-slate-600">{insp.inspectTime}</td>
                         <td className="py-2 px-3 text-xs text-slate-700">{insp.pointName}</td>
                         <td className="py-2 px-3 text-xs text-slate-600">{insp.inspectorName}</td>
+                        <td className="py-2 px-3">
+                          <LegendBadge
+                            status={insp.legendStatus ?? calculateLegendStatus(insp.odorLevel, insp.cleanStatus)}
+                            size="sm"
+                          />
+                        </td>
                         <td className="py-2 px-3">
                           <span className={`text-xs ${
                             insp.odorLevel >= 4 ? 'text-red-600 font-medium' : 'text-slate-600'
@@ -143,6 +160,7 @@ export default function Export() {
                     ))}
                   </tbody>
                 </table>
+                </div>
                 {filteredInspections.length > 20 && (
                   <p className="text-xs text-slate-400 text-center mt-3">
                     仅显示前 20 条，导出后将包含全部 {filteredInspections.length} 条

@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, PackageX, Clock, Lock } from 'lucide-react';
 import type { ToiletPoint } from '@/types';
-import { ODOR_LABELS, CLEAN_LABELS } from '@/types';
+import { ODOR_LABELS, CLEAN_LABELS, calculateLegendStatus, calculatePriorityScore } from '@/types';
 import { useAppStore } from '@/store/useAppStore';
+import { LegendBadge, PriorityPin } from '@/components/StatusLegend';
 
 interface PointCardProps {
   point: ToiletPoint;
@@ -70,7 +71,7 @@ export default function PointCard({ point }: PointCardProps) {
         </span>
       </div>
 
-      <div className="flex items-center gap-4 mb-2">
+      <div className="flex items-center gap-3 mb-2 flex-wrap">
         <div className="flex items-center gap-1">
           <span className="text-xs text-slate-500">异味</span>
           <span className={`text-xs font-bold ${odorColor}`}>
@@ -90,6 +91,14 @@ export default function PointCard({ point }: PointCardProps) {
         >
           {CLEAN_LABELS[point.cleanStatus]}
         </span>
+        <LegendBadge
+          status={point.legendStatus ?? calculateLegendStatus(point.odorLevel, point.cleanStatus)}
+          size="sm"
+        />
+        <PriorityPin
+          priorityScore={point.priorityScore ?? calculatePriorityScore(point.odorLevel, point.cleanStatus, point.isOpen)}
+          odorLevel={point.odorLevel}
+        />
       </div>
 
       {isSupplyLow && point.isOpen && !isCitizen && (

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { ToiletPoint, InspectionRecord, User, UserRole, FilterState } from '@/types';
 import { MOCK_POINTS, MOCK_INSPECTIONS, MOCK_USERS } from '@/data/mock';
+import { calculateLegendStatus, calculatePriorityScore } from '@/types';
 
 interface AppState {
   currentUser: User;
@@ -27,10 +28,22 @@ const DEFAULT_FILTERS: FilterState = {
   keyword: '',
 };
 
+const initPointWithLegend = (point: ToiletPoint): ToiletPoint => ({
+  ...point,
+  legendStatus: calculateLegendStatus(point.odorLevel, point.cleanStatus),
+  priorityScore: calculatePriorityScore(point.odorLevel, point.cleanStatus, point.isOpen),
+});
+
+const initInspectionWithLegend = (record: InspectionRecord): InspectionRecord => ({
+  ...record,
+  legendStatus: calculateLegendStatus(record.odorLevel, record.cleanStatus),
+  priorityScore: calculatePriorityScore(record.odorLevel, record.cleanStatus, true),
+});
+
 export const useAppStore = create<AppState>((set, get) => ({
   currentUser: MOCK_USERS[0],
-  points: MOCK_POINTS,
-  inspections: MOCK_INSPECTIONS,
+  points: MOCK_POINTS.map(initPointWithLegend),
+  inspections: MOCK_INSPECTIONS.map(initInspectionWithLegend),
   filters: { ...DEFAULT_FILTERS },
 
   setCurrentUser: (user) => set({ currentUser: user }),
@@ -47,19 +60,20 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   addInspection: (record) =>
     set((state) => {
+      const recordWithLegend = initInspectionWithLegend(record);
       const updatedPoints = state.points.map((p) =>
         p.id === record.pointId
-          ? {
+          ? initPointWithLegend({
               ...p,
               odorLevel: record.odorLevel,
               cleanStatus: record.cleanStatus,
               lastInspection: record.inspectTime,
               supplyRequested: record.supplyNeeded ? false : p.supplyRequested,
-            }
+            })
           : p
       );
       return {
-        inspections: [record, ...state.inspections],
+        inspections: [recordWithLegend, ...state.inspections],
         points: updatedPoints,
       };
     }),
@@ -98,7 +112,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       );
     }
 
-    result.sort((a, b) => b.odorLevel - a.odorLevel);
+    result.sort((a, b) => {
+      const scoreA = a.priorityScore ?? calculatePriorityScore(a.odorLevel, a.cleanStatus, a.isOpen);
+      const scoreB = b.priorityScore ?? calculatePriorityScore(b.odorLevel, b.cleanStatus, b.isOpen);
+      if (scoreB !== scoreA) return scoreB - scoreA;
+      return b.odorLevel - a.odorLevel;
+    });
 
     return result;
   },

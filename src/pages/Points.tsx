@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Clock, MapPin, PackageX, Lock } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import FilterBar from '@/components/FilterBar';
-import { ODOR_LABELS, CLEAN_LABELS } from '@/types';
+import StatusLegend, { LegendBadge, PriorityPin } from '@/components/StatusLegend';
+import { ODOR_LABELS, CLEAN_LABELS, calculateLegendStatus, calculatePriorityScore } from '@/types';
 
 export default function Points() {
   const { getFilteredPoints, getInspectionsByPointId, currentUser, requestSupply } = useAppStore();
@@ -26,6 +27,9 @@ export default function Points() {
 
       <div className="flex-1 overflow-hidden flex">
         <div className="w-2/5 border-r border-slate-200 overflow-auto p-4">
+          <div className="mb-4">
+            <StatusLegend showTitle={false} />
+          </div>
           <FilterBar />
           <div className="space-y-2">
             {points.map((point) => {
@@ -57,7 +61,7 @@ export default function Points() {
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <span className={`text-xs ${
                           point.odorLevel >= 4 ? 'text-red-600 font-bold' : point.odorLevel === 3 ? 'text-amber-600' : 'text-slate-500'
                         }`}>
@@ -69,6 +73,14 @@ export default function Points() {
                         }`}>
                           {CLEAN_LABELS[point.cleanStatus]}
                         </span>
+                        <LegendBadge
+                          status={point.legendStatus ?? calculateLegendStatus(point.odorLevel, point.cleanStatus)}
+                          size="sm"
+                        />
+                        <PriorityPin
+                          priorityScore={point.priorityScore ?? calculatePriorityScore(point.odorLevel, point.cleanStatus, point.isOpen)}
+                          odorLevel={point.odorLevel}
+                        />
                         {!isCitizen && isSupplyLow && point.isOpen && (
                           <span className="text-xs text-amber-600 flex items-center gap-0.5">
                             <PackageX size={10} />
@@ -198,9 +210,13 @@ export default function Points() {
                     {inspections.map((insp) => (
                       <div key={insp.id} className="bg-slate-50 rounded-lg p-3">
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <Clock size={14} className="text-slate-400" />
                             <span className="text-xs text-slate-500">{insp.inspectTime}</span>
+                            <LegendBadge
+                              status={insp.legendStatus ?? calculateLegendStatus(insp.odorLevel, insp.cleanStatus)}
+                              size="sm"
+                            />
                           </div>
                           <div className="flex items-center gap-2">
                             <span className={`text-xs px-1.5 py-0.5 rounded ${
@@ -220,6 +236,9 @@ export default function Points() {
                           <>
                             <p className="text-xs text-slate-600 mt-1.5">{insp.remark}</p>
                             <p className="text-xs text-slate-400 mt-1">巡检员: {insp.inspectorName}</p>
+                            {insp.priorityScore !== undefined && insp.priorityScore > 0 && (
+                              <p className="text-xs text-slate-400">优先级分: {insp.priorityScore}</p>
+                            )}
                           </>
                         )}
                       </div>

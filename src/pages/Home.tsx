@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import MapView from '@/components/MapView';
 import PointCard from '@/components/PointCard';
 import FilterBar from '@/components/FilterBar';
+import StatusLegend from '@/components/StatusLegend';
 import type { ToiletPoint } from '@/types';
 
 export default function Home() {
@@ -77,6 +78,10 @@ export default function Home() {
       </div>
 
       <div className="flex-1 overflow-auto p-6">
+        <div className="mb-4">
+          <StatusLegend />
+        </div>
+
         <FilterBar />
 
         {viewMode === 'map' ? (
